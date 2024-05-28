@@ -58,7 +58,8 @@ class PlagiarismDetector:
         plt.xticks(range(len(self.list_names)), self.list_names, rotation=90)
         plt.yticks(range(len(self.list_names)), self.list_names)
         plt.colorbar()
-
+        plt.gca().xaxis.tick_top()
+        plt.tight_layout()
         # Save the plot to a BytesIO object
         img = io.BytesIO()
         plt.savefig(img, format='png')
