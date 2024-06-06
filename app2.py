@@ -7,23 +7,34 @@ import matplotlib
 matplotlib.use('Agg') 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from nltk.lm import MLE, WittenBellInterpolated
+import xlsxwriter
+# from nltk.lm import MLE, WittenBellInterpolated
 from nltk.util import ngrams, pad_sequence, everygrams
 from nltk.tokenize import word_tokenize
 import nltk
 nltk.download('punkt')
 import re
 import os
+
+# TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
+# TODO: chmurka tagów z najczęstszymi słowami w tekście
+# TODO: Wykresy zależności miary podobieństwa od długości tekstu
+# TODO: wydajność - porównanie czasu obliczeń dla różnych modeli językowych
+# TODO: wykresy stosunku liczby słów w tekście do całego tekstu dla każdego słowa i wszystkich tekstów na jednym wykresie (histogram) + możliwość 
+#       wyboru tekstu do porównania (dropdown lub radio buttons)  
+# TODO: dodawanie i usuwanie plików do porównania dynamicznie
+# TODO: dodanie okienek do wklejania porównywanych tekstów
+
+
 class PlagiarismDetector:
     def __init__(self):
         self.file_data = {}
         self.similarities = None
 
-        # dla porównania modeli językowych MLE i WBI
+        # TODO: dla porównania modeli językowych MLE i WBI
         # self.mle_models = None
         # self.wbi_models = None
 
-        self.list_names = None
         self.plot_url = None
         self.n = 4
 
@@ -44,19 +55,22 @@ class PlagiarismDetector:
 
     def compare_files(self,file_data):
         self.tokenized_texts = [self.preprocess_and_tokenize(text) for text in file_data.values()]
-        self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
-        self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
+        
+        # TODO:dla porównania modeli językowych MLE i WBI
+        # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
+        # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
-        self.list_names = list(file_data.keys())
+        
     
     def generate_excel_report(self, writer):
-        df = pd.DataFrame(self.similarities, columns=self.list_names, index=self.list_names)
+        df = pd.DataFrame(self.similarities, columns=list(self.file_data.keys()), index=list(self.file_data.keys()))
         df.to_excel(writer, sheet_name='Plagiarism Report')
         
     def visualize_similarities(self):
+
         plt.imshow(self.similarities, cmap='Reds', interpolation='nearest')
-        plt.xticks(range(len(self.list_names)), self.list_names, rotation=90)
-        plt.yticks(range(len(self.list_names)), self.list_names)
+        plt.xticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()), rotation=90)
+        plt.yticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()))
         plt.colorbar()
         plt.gca().xaxis.tick_top()
         plt.tight_layout()
@@ -69,7 +83,7 @@ class PlagiarismDetector:
         self.plot_url = base64.b64encode(img.getvalue()).decode()
         plt.clf()
 
-    # Metoda do wizualizacji perplexity dla modeli MLE i WBI dla każdego tekstu
+    #TODO: Metoda do wizualizacji perplexity dla modeli MLE i WBI dla każdego tekstu
     
     # def visualize_perplexities(self):
     #     mle_perplexities = [[model.perplexity(text) for text in self.tokenized_texts] for model in self.mle_models]
@@ -79,17 +93,17 @@ class PlagiarismDetector:
 
     #     axs[0].imshow(mle_perplexities, cmap='Reds', interpolation='nearest')
     #     axs[0].set_title('MLE Perplexities')
-    #     axs[0].set_xticks(range(len(self.list_names)))
-    #     axs[0].set_yticks(range(len(self.list_names)))
-    #     axs[0].set_xticklabels(self.list_names, rotation=90)
-    #     axs[0].set_yticklabels(self.list_names)
+    #     axs[0].set_xticks(range(len(list(self.file_data.keys()))))
+    #     axs[0].set_yticks(range(len(list(self.file_data.keys()))))
+    #     axs[0].set_xticklabels(list(self.file_data.keys()), rotation=90)
+    #     axs[0].set_yticklabels(list(self.file_data.keys()))
 
     #     axs[1].imshow(wbi_perplexities, cmap='Reds', interpolation='nearest')
     #     axs[1].set_title('WBI Perplexities')
-    #     axs[1].set_xticks(range(len(self.list_names)))
-    #     axs[1].set_yticks(range(len(self.list_names)))
-    #     axs[1].set_xticklabels(self.list_names, rotation=90)
-    #     axs[1].set_yticklabels(self.list_names)
+    #     axs[1].set_xticks(range(len(list(self.file_data.keys()))))
+    #     axs[1].set_yticks(range(len(list(self.file_data.keys()))))
+    #     axs[1].set_xticklabels(list(self.file_data.keys()), rotation=90)
+    #     axs[1].set_yticklabels(list(self.file_data.keys()))
 
     #     plt.tight_layout()
     #     plt.colorbar()
@@ -106,27 +120,52 @@ class PlagiarismDetector:
 detector = PlagiarismDetector()
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    
-    if request.method == 'POST':
+@app.route('/', methods=['GET'])
+def show_site():
 
-        if 'files' not in request.files:
-            return 'No file part'
-        files = request.files.getlist('files')
-        for file in files:
-            if file.filename == '':
-                return render_template('index.html')
-            if file:
-                file_content = file.read().decode('utf-8')
-                detector.file_data[file.filename] = file_content
-                
+    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+   
+@app.route('/upload', methods=['POST'])
+def upload_file():
+
+    if 'files' not in request.files:
+        return 'No file part'
+    files = request.files.getlist('files')
+    print("tutaj---------->")
+    print(files)
+    for file in files:
+        if file.filename == '':
+            return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+        if file:
+            file_content = file.read().decode('utf-8')
+            detector.file_data[file.filename] = file_content
+    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+
+@app.route('/visualize', methods=['POST'])
+def show_png():
+    print("cokolwiek")
+    print(detector.file_data.keys())
+    if detector.file_data.keys()!=[]:
         detector.compare_files(detector.file_data)
         detector.visualize_similarities()
-        # detector.visualize_perplexities()
-        return render_template('index.html', plot_url=detector.plot_url)
-    return render_template('index.html')
+    else:
+        detector.plot_url = None
 
+    # TODO:
+    # detector.visualize_perplexities()
+
+    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+
+@app.route('/delete/<filename>', methods=['DELETE'])
+def delete_file(filename):
+    print("delete w backendzie. nazwa pliku:--------------->")
+    print(filename)
+    print(detector.file_data.keys())
+    if filename in detector.file_data.keys():
+        del detector.file_data[filename]
+        return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
+    else:
+        return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
 
 @app.route('/download', methods=['GET'])
 def download_file():

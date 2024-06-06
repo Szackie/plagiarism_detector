@@ -87,31 +87,83 @@
 </head>
 <body>
 
-<h2>Plagiarism Detection</h2>
-<p>Select the files you want to compare and click 'Show Result' to see the similarity matrix.</p>
-
-<form action="/" method="post" enctype="multipart/form-data">
-  <label for="files">Select files to upload:</label>
-  <input type="file" name="files" id="files" multiple>
-  <ul id="fileList"></ul>
-  <input type="submit" value="Show Result" name="submit">
+  <h2>Plagiarism Detection</h2>
+  <p>Select the files you want to compare and click 'Show Result' to see the similarity matrix.</p>
+  
+  <input type="file" id="files" name="files" multiple>
+  
+  <ul id="fileList">
+    <!-- {% for file in list_files %}
+    <li>{{ file }}</li>
+    {% endfor %} -->
+  </ul>
+  
+  <form action="/visualize" method="post">
+    <input type="submit" value="Show Result">
+  </form>
+  
   {% if plot_url %}
     <img src="data:image/png;base64,{{ plot_url }}">
     <a href="/download">Download Report</a>
   {% endif %}
-</form>
+  
 
-<script>
-  document.getElementById('files').addEventListener('change', function(e) {
-    var list = document.getElementById('fileList');
-    list.innerHTML = '';
-    for (var i = 0; i < this.files.length; i++) {
-      var item = document.createElement('li');
-      item.textContent = this.files[i].name;
-      list.appendChild(item);
+  <script>
+  
+    var list_files = {{ list_files|tojson|safe }};
+  
+    function deleteFile(fileName) {
+      fetch('/delete/' + fileName, {
+        method: 'DELETE',
+      }).then(function(response) {
+        if (response.ok) {
+          location.reload();
+        } else {
+          console.log('Failed to delete file');
+        }
+      });
     }
-  });
-</script>
+  
+    document.getElementById('files').addEventListener('change', function(e) {
+    
+      var files = document.getElementById('files').files;
+      var formData = new FormData();
+      for (var i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      }).then(function(response) {
+        if (response.ok) {
+          location.reload();
+        } else {
+          console.log('Failed to upload files');
+        }
+      });
+    });
+  
+    var fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    list_files.forEach(file => {
+        // Utwórz nowy element listy
+        var li = document.createElement('li');
+        li.textContent = file;
+  
+        // Utwórz przycisk "delete"
+        var deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.addEventListener('click', function() {
+          deleteFile(file);
+        });
+  
+        // Dodaj przycisk "delete" do elementu listy
+        li.appendChild(deleteButton);
+  
+        // Dodaj element listy do listy na stronie
+        fileList.appendChild(li);
+    });
+  </script>
 
 </body>
 </html>
