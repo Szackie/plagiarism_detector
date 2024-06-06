@@ -68,7 +68,7 @@ class PlagiarismDetector:
         
     def visualize_similarities(self):
 
-        plt.imshow(self.similarities, cmap='Reds', interpolation='nearest')
+        plt.imshow(self.similarities, cmap='Reds', interpolation='nearest', vmin=0, vmax=1)
         plt.xticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()), rotation=90)
         plt.yticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()))
         plt.colorbar()
@@ -143,9 +143,8 @@ def upload_file():
 
 @app.route('/visualize', methods=['POST'])
 def show_png():
-    print("cokolwiek")
-    print(detector.file_data.keys())
-    if detector.file_data.keys()!=[]:
+    print("TU DZIAŁA")
+    if detector.file_data:
         detector.compare_files(detector.file_data)
         detector.visualize_similarities()
     else:

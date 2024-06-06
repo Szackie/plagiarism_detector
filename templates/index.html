@@ -21,14 +21,14 @@
       color: #666;
     }
 
-    form {
-      max-width: 500px;
-      margin: 30px auto;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 4px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
+    .myClass {
+  max-width: 500px;
+  margin: 30px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
     label {
       display: block;
@@ -86,7 +86,7 @@
   </style>
 </head>
 <body>
-
+  <div class="myClass">
   <h2>Plagiarism Detection</h2>
   <p>Select the files you want to compare and click 'Show Result' to see the similarity matrix.</p>
   
@@ -107,7 +107,7 @@
     <a href="/download">Download Report</a>
   {% endif %}
   
-
+</div>
   <script>
   
     var list_files = {{ list_files|tojson|safe }};
