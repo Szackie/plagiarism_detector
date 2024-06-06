@@ -1,10 +1,11 @@
-from flask import Flask, request, render_template,send_file, make_response
+from flask import Flask, request, render_template,send_file, make_response, session
 import io
 import base64
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg') 
+from flask_session import Session
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import xlsxwriter
@@ -15,6 +16,7 @@ import nltk
 nltk.download('punkt')
 import re
 import os
+from datetime import timedelta
 
 # TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
 # TODO: chmurka tagów z najczęstszymi słowami w tekście
@@ -60,12 +62,7 @@ class PlagiarismDetector:
         # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
         # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
-        
-    
-    def generate_excel_report(self, writer):
-        df = pd.DataFrame(self.similarities, columns=list(self.file_data.keys()), index=list(self.file_data.keys()))
-        df.to_excel(writer, sheet_name='Plagiarism Report')
-        
+                
     def visualize_similarities(self):
 
         plt.imshow(self.similarities, cmap='Reds', interpolation='nearest', vmin=0, vmax=1)
@@ -83,6 +80,15 @@ class PlagiarismDetector:
         self.plot_url = base64.b64encode(img.getvalue()).decode()
         plt.clf()
 
+    def set_state(self, state):
+        self.file_data = state['file_data']
+
+    def get_state(self):
+        return {
+            'file_data': self.file_data,
+        }
+
+'''
     #TODO: Metoda do wizualizacji perplexity dla modeli MLE i WBI dla każdego tekstu
     
     # def visualize_perplexities(self):
@@ -116,23 +122,39 @@ class PlagiarismDetector:
     #     # Encode the BytesIO object to base64 and decode it to utf-8 to embed it in HTML
     #     self.plot_url = base64.b64encode(img.getvalue()).decode()
     #     plt.clf()
+'''
 
-detector = PlagiarismDetector()
+def get_or_restore_detector():
+    session.permanent = True
+    detector_data = session.get('detector_data')
+    detector = PlagiarismDetector()
+    if detector_data is None:
+        detector_data = detector.get_state()
+        session['detector_data'] = detector_data
+    else:
+        detector.set_state(detector_data)
+    return detector
+
+
 app = Flask(__name__)
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SECRET_KEY'] = os.urandom(24)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=5)
+Session(app)
 
 @app.route('/', methods=['GET'])
 def show_site():
+    detector = get_or_restore_detector()
 
     return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
-   
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    detector = get_or_restore_detector()
 
     if 'files' not in request.files:
         return 'No file part'
     files = request.files.getlist('files')
-    print("tutaj---------->")
-    print(files)
     for file in files:
         if file.filename == '':
             return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
@@ -143,7 +165,7 @@ def upload_file():
 
 @app.route('/visualize', methods=['POST'])
 def show_png():
-    print("TU DZIAŁA")
+    detector = get_or_restore_detector()
     if detector.file_data:
         detector.compare_files(detector.file_data)
         detector.visualize_similarities()
@@ -157,9 +179,7 @@ def show_png():
 
 @app.route('/delete/<filename>', methods=['DELETE'])
 def delete_file(filename):
-    print("delete w backendzie. nazwa pliku:--------------->")
-    print(filename)
-    print(detector.file_data.keys())
+    detector = get_or_restore_detector()
     if filename in detector.file_data.keys():
         del detector.file_data[filename]
         return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
@@ -168,9 +188,17 @@ def delete_file(filename):
 
 @app.route('/download', methods=['GET'])
 def download_file():
+    detector = get_or_restore_detector()
+
+    detector.compare_files(detector.file_data)
+
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    detector.generate_excel_report(writer)
+    
+#get excel report
+    df = pd.DataFrame(detector.similarities, columns=list(detector.file_data.keys()), index=list(detector.file_data.keys()))
+    df.to_excel(writer, sheet_name='Plagiarism Report')
+
     writer.close()  
     output.seek(0)
     response = make_response(output.read())

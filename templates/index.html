@@ -92,11 +92,7 @@
   
   <input type="file" id="files" name="files" multiple>
   
-  <ul id="fileList">
-    <!-- {% for file in list_files %}
-    <li>{{ file }}</li>
-    {% endfor %} -->
-  </ul>
+  <ul id="fileList"></ul>
   
   <form action="/visualize" method="post">
     <input type="submit" value="Show Result">
@@ -104,12 +100,13 @@
   
   {% if plot_url %}
     <img src="data:image/png;base64,{{ plot_url }}">
-    <a href="/download">Download Report</a>
+    <a href="/download">Download Report</a>   
   {% endif %}
-  
+
 </div>
   <script>
-  
+    
+
     var list_files = {{ list_files|tojson|safe }};
   
     function deleteFile(fileName) {
@@ -146,21 +143,16 @@
     var fileList = document.getElementById('fileList');
     fileList.innerHTML = '';
     list_files.forEach(file => {
-        // Utwórz nowy element listy
+
         var li = document.createElement('li');
         li.textContent = file;
-  
-        // Utwórz przycisk "delete"
+
         var deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
         deleteButton.addEventListener('click', function() {
           deleteFile(file);
         });
-  
-        // Dodaj przycisk "delete" do elementu listy
         li.appendChild(deleteButton);
-  
-        // Dodaj element listy do listy na stronie
         fileList.appendChild(li);
     });
   </script>
