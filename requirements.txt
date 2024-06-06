@@ -5,3 +5,4 @@ scikit-learn
 nltk
 openpyxl
 xlsxwriter
+flask_session
