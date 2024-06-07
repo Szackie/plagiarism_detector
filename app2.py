@@ -73,7 +73,7 @@ class PlagiarismDetector:
         plt.tight_layout()
         # Save the plot to a BytesIO object
         img = io.BytesIO()
-        plt.savefig(img, format='png',dpi = 30)
+        plt.savefig(img, format='png',dpi = 80)
         img.seek(0)
 
         # Encode the BytesIO object to base64 and decode it to utf-8 to embed it in HTML
