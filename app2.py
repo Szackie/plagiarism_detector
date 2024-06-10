@@ -1,3 +1,4 @@
+from matplotlib.ticker import FuncFormatter
 from flask import Flask, request, render_template,send_file, make_response, session
 import io
 import base64
@@ -62,21 +63,35 @@ class PlagiarismDetector:
         # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
         # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
-                
-    def visualize_similarities(self):
 
-        plt.imshow(self.similarities, cmap='Reds', interpolation='nearest', vmin=0, vmax=1)
-        plt.xticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()), rotation=90)
-        plt.yticks(range(len(list(self.file_data.keys()))), list(self.file_data.keys()))
-        plt.colorbar()
-        plt.gca().xaxis.tick_top()
+    def visualize_similarities(self):
+        _, ax = plt.subplots()
+
+        im = ax.imshow(self.similarities, cmap='Reds', interpolation='nearest', vmin=0, vmax=1)
+
+        ax.set_xticks(range(len(list(self.file_data.keys()))))
+        ax.set_xticklabels(list(self.file_data.keys()), rotation=90)
+        ax.set_yticks(range(len(list(self.file_data.keys()))))
+        ax.set_yticklabels(list(self.file_data.keys()))
+        ax.xaxis.tick_top()
+
+        def format_func(value, tick_number):
+            if value == 0:
+                return 'Low'
+            elif value == 1:
+                return 'High'
+            else:
+                return ''
+
+        formatter = FuncFormatter(format_func)
+        cbar = plt.colorbar(im, format=formatter)
+        cbar.set_label('Similarity')  
         plt.tight_layout()
-        # Save the plot to a BytesIO object
+
         img = io.BytesIO()
-        plt.savefig(img, format='png',dpi = 80)
+        plt.savefig(img, format='png', dpi=80)
         img.seek(0)
 
-        # Encode the BytesIO object to base64 and decode it to utf-8 to embed it in HTML
         self.plot_url = base64.b64encode(img.getvalue()).decode()
         plt.clf()
 
