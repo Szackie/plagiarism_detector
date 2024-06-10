@@ -28,5 +28,5 @@ The application is containerized using Docker and hosted on Render. You can acce
 - Add charts showing the dependency of the similarity measure on the length of the text.
 - Compare computation time for different language models.
 - Add charts showing the ratio of the number of words in the text to the entire text for each word and all texts on one chart (histogram) with the ability to choose the text for comparison (dropdown or radio buttons).
-- Add the ability to dynamically add and remove files for comparison.
+ :white_check_mark: <del> Add the ability to dynamically add and remove files for comparison. </del>
 - Add text boxes for pasting compared texts.
