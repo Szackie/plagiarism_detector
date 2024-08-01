@@ -1,11 +1,15 @@
 from matplotlib.ticker import FuncFormatter
 from flask import Flask, request, render_template,send_file, make_response, session
 import io
+from wordcloud import WordCloud
 import base64
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
+
+
 matplotlib.use('Agg') 
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import xlsxwriter
@@ -18,15 +22,75 @@ import re
 import os
 from flask_session import Session
 from datetime import timedelta
+import numpy as np
+from PIL import Image
 
 # TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
-# TODO: chmurka tagów z najczęstszymi słowami w tekście
+# TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie)
 # TODO: Wykresy zależności miary podobieństwa od długości tekstu
 # TODO: wydajność - porównanie czasu obliczeń dla różnych modeli językowych
 # TODO: wykresy stosunku liczby słów w tekście do całego tekstu dla każdego słowa i wszystkich tekstów na jednym wykresie (histogram) + możliwość 
 #       wyboru tekstu do porównania (dropdown lub radio buttons)  
-# TODO: dodawanie i usuwanie plików do porównania dynamicznie
+# TODO: [zrobione] dodawanie i usuwanie plików do porównania dynamicznie
 # TODO: dodanie okienek do wklejania porównywanych tekstów
+
+
+class WordCloudGenerator:
+    def __init__(self, file_data=None):
+
+        if file_data is None:
+            file_data = {}
+        self.file_data = file_data
+
+
+    def generate_word_clouds(self):
+        # Lista kolorów dla różnych plików
+        colors = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124', '#45B8AC']        # Tworzymy pusty obrazek
+        base_image = np.zeros((800, 800, 4), dtype=np.uint8)
+        i=0
+        # Przechodzimy przez wszystkie pliki w self.file_data
+        for idx, (filename, text) in enumerate(self.file_data.items()):
+            i+=1
+            # Tworzymy chmurę słów
+            wordcloud = WordCloud(
+
+                width=800,
+                height=800,
+                background_color=None,
+                mode='RGBA',  # Ustawiamy tryb na RGBA, aby umożliwić półprzeźroczystość
+                color_func=lambda *args, **kwargs: colors[idx % len(colors)],  # Ustawiamy stały kolor dla danego pliku
+                prefer_horizontal=1.0,  # Preferujemy poziome słowa
+                max_words=30
+            ).generate(text)
+            
+            # Konwertujemy chmurę słów na obrazek
+            wordcloud_image = wordcloud.to_array()
+            
+            # Nakładamy chmurę słów na bazowy obrazek
+            base_image = self.overlay_images(base_image, wordcloud_image)
+        
+        # Wyświetlamy chmurę słów
+        plt.figure(figsize=(10, 10))
+        plt.imshow(base_image, interpolation='bilinear')
+        plt.axis('off')
+        plt.title('Chmura słów ze wszystkich plików')
+        
+        img2 = io.BytesIO()
+        plt.savefig(img2, format='png', dpi=80)
+        img2.seek(0)
+
+        cloud_url = base64.b64encode(img2.getvalue()).decode()
+        plt.clf()
+
+        return cloud_url
+
+    def overlay_images(self, base_image, overlay_image):
+        # Nakładamy overlay_image na base_image z uwzględnieniem przezroczystości
+        for y in range(overlay_image.shape[0]):
+            for x in range(overlay_image.shape[1]):
+                if overlay_image[y, x, 3] > 0:  # Jeśli piksel nie jest przezroczysty
+                    base_image[y, x] = overlay_image[y, x]
+        return base_image
 
 
 class PlagiarismDetector:
@@ -39,6 +103,7 @@ class PlagiarismDetector:
         # self.wbi_models = None
 
         self.plot_url = None
+        self.cloud_url = None
         self.n = 4
 
     def preprocess_and_tokenize(self,text):
@@ -63,7 +128,7 @@ class PlagiarismDetector:
         # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
         # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
-
+    
     def visualize_similarities(self):
         _, ax = plt.subplots()
 
@@ -94,6 +159,9 @@ class PlagiarismDetector:
 
         self.plot_url = base64.b64encode(img.getvalue()).decode()
         plt.clf()
+        
+        generator = WordCloudGenerator(self.file_data)
+        self.cloud_url = generator.generate_word_clouds()
 
     def set_state(self, state):
         self.file_data = state['file_data']
@@ -161,7 +229,7 @@ Session(app)
 def show_site():
     detector = get_or_restore_detector()
 
-    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url = detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -172,11 +240,11 @@ def upload_file():
     files = request.files.getlist('files')
     for file in files:
         if file.filename == '':
-            return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+            return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
         if file:
             file_content = file.read().decode('utf-8')
             detector.file_data[file.filename] = file_content
-    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/visualize', methods=['POST'])
 def show_png():
@@ -184,22 +252,24 @@ def show_png():
     if detector.file_data:
         detector.compare_files(detector.file_data)
         detector.visualize_similarities()
+
     else:
         detector.plot_url = None
+        detector.cloud_url = None
 
     # TODO:
     # detector.visualize_perplexities()
 
-    return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/delete/<filename>', methods=['DELETE'])
 def delete_file(filename):
     detector = get_or_restore_detector()
     if filename in detector.file_data.keys():
         del detector.file_data[filename]
-        return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
+        return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
     else:
-        return render_template('index.html', plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
+        return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
 
 @app.route('/download', methods=['GET'])
 def download_file():

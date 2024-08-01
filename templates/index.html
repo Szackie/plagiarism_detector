@@ -97,6 +97,10 @@
   <form action="/visualize" method="post">
     <input type="submit" value="Show Result">
   </form>
+  {% if cloud_url %}
+  <img src="data:image/png;base64,{{ cloud_url }}">
+
+{% endif %}
   
   {% if plot_url %}
     <img src="data:image/png;base64,{{ plot_url }}">
