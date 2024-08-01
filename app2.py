@@ -53,14 +53,13 @@ class WordCloudGenerator:
             i+=1
             # Tworzymy chmurę słów
             wordcloud = WordCloud(
-
                 width=800,
                 height=800,
                 background_color=None,
-                mode='RGBA',  # Ustawiamy tryb na RGBA, aby umożliwić półprzeźroczystość
-                color_func=lambda *args, **kwargs: colors[idx % len(colors)],  # Ustawiamy stały kolor dla danego pliku
-                prefer_horizontal=1.0,  # Preferujemy poziome słowa
-                max_words=30
+                mode='RGBA',
+                color_func=lambda *args, **kwargs: colors[idx % len(colors)],  
+                prefer_horizontal=1.0, 
+                max_words=20
             ).generate(text)
             
             # Konwertujemy chmurę słów na obrazek
@@ -70,10 +69,9 @@ class WordCloudGenerator:
             base_image = self.overlay_images(base_image, wordcloud_image)
         
         # Wyświetlamy chmurę słów
-        plt.figure(figsize=(10, 10))
+        plt.figure(figsize=(8, 8))
         plt.imshow(base_image, interpolation='bilinear')
         plt.axis('off')
-        plt.title('Chmura słów ze wszystkich plików')
         
         img2 = io.BytesIO()
         plt.savefig(img2, format='png', dpi=80)
