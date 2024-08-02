@@ -137,7 +137,7 @@
 <body>
   <div class="myClass">
   <h2>Plagiarism Detection</h2>
-  <p>Select the text files (*.txt) you want to compare and click 'Show Result' to see the similarity matrix, word cloud and more.</p>
+  <p>Select the text files (*.txt) you want to compare and click 'Show Result' to see the similarity matrix, word clouds and more.</p>
   
   <input type="file" id="files" name="files" multiple>
   
@@ -150,25 +150,31 @@
   {% if plot_url %}
   <div class="tab-button {% if plot_url %}active{% endif %}" data-tab="similarity">Similarity</div>
   {% endif %}
-  {% if cloud_url %}
-  <div class="tab-button {% if not plot_url %}inactive{% endif %}" data-tab="word-cloud">Word Cloud</div>
+  {% if cloud_url_list %}
+  <div class="tab-button {% if not plot_url %}inactive{% endif %}" data-tab="word_clouds">Word Clouds</div>
   {% endif %}
 </div>
 {% if plot_url %}
 <div id="similarity" class="tab active">
   <div class="frame">
     <img src="data:image/png;base64,{{ plot_url }}">
+  </div>
+</div>
+{% endif %}
 
-  </div>
+{% if cloud_url_list %}
+<div id="word_clouds" class="tab">
+  {% for cloud_url in cloud_url_list %}
+
+
+      <div class="frame">
+        <img src="data:image/png;base64,{{ cloud_url }}">
+      </div>
+
+  {% endfor %}
 </div>
 {% endif %}
-{% if cloud_url %}
-<div id="word-cloud" class="tab">
-  <div class="frame">
-    <img src="data:image/png;base64,{{ cloud_url }}">
-  </div>
-</div>
-{% endif %}
+
 {% if plot_url %}
 <a href="/download">Download Report</a>
 {% endif %}

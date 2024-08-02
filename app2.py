@@ -42,16 +42,11 @@ class WordCloudGenerator:
             file_data = {}
         self.file_data = file_data
 
-
     def generate_word_clouds(self):
-        # Lista kolorów dla różnych plików
-        colors = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124', '#45B8AC']        # Tworzymy pusty obrazek
-        base_image = np.zeros((800, 800, 4), dtype=np.uint8)
-        i=0
-        # Przechodzimy przez wszystkie pliki w self.file_data
+        colors = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124', '#45B8AC']
+        
+        cloud_url_list=[]
         for idx, (filename, text) in enumerate(self.file_data.items()):
-            i+=1
-            # Tworzymy chmurę słów
             wordcloud = WordCloud(
                 width=800,
                 height=800,
@@ -59,37 +54,27 @@ class WordCloudGenerator:
                 mode='RGBA',
                 color_func=lambda *args, **kwargs: colors[idx % len(colors)],  
                 prefer_horizontal=1.0, 
-                max_words=20
+                max_words=20,
+                
             ).generate(text)
             
-            # Konwertujemy chmurę słów na obrazek
             wordcloud_image = wordcloud.to_array()
+
+            plt.figure(figsize=(8, 8))
+            plt.title(filename)
+            plt.imshow(wordcloud_image, interpolation='bilinear')
+            plt.axis('off')
             
-            # Nakładamy chmurę słów na bazowy obrazek
-            base_image = self.overlay_images(base_image, wordcloud_image)
-        
-        # Wyświetlamy chmurę słów
-        plt.figure(figsize=(8, 8))
-        plt.imshow(base_image, interpolation='bilinear')
-        plt.axis('off')
-        
-        img2 = io.BytesIO()
-        plt.savefig(img2, format='png', dpi=80)
-        img2.seek(0)
+            img2 = io.BytesIO()
+            plt.savefig(img2, format='png', dpi=80)
+            img2.seek(0)
 
-        cloud_url = base64.b64encode(img2.getvalue()).decode()
-        plt.clf()
+            cloud_url = base64.b64encode(img2.getvalue()).decode()
+            plt.clf()
+            cloud_url_list.append(cloud_url)
+            plt.close()
 
-        return cloud_url
-
-    def overlay_images(self, base_image, overlay_image):
-        # Nakładamy overlay_image na base_image z uwzględnieniem przezroczystości
-        for y in range(overlay_image.shape[0]):
-            for x in range(overlay_image.shape[1]):
-                if overlay_image[y, x, 3] > 0:  # Jeśli piksel nie jest przezroczysty
-                    base_image[y, x] = overlay_image[y, x]
-        return base_image
-
+        return cloud_url_list
 
 class PlagiarismDetector:
     def __init__(self):
@@ -101,7 +86,7 @@ class PlagiarismDetector:
         # self.wbi_models = None
 
         self.plot_url = None
-        self.cloud_url = None
+        self.cloud_url_list = None
         self.n = 4
 
     def preprocess_and_tokenize(self,text):
@@ -159,8 +144,9 @@ class PlagiarismDetector:
         plt.clf()
         
         generator = WordCloudGenerator(self.file_data)
-        self.cloud_url = generator.generate_word_clouds()
-
+        self.cloud_url_list = generator.generate_word_clouds()
+        plt.close()
+        
     def set_state(self, state):
         self.file_data = state['file_data']
 
@@ -227,7 +213,7 @@ Session(app)
 def show_site():
     detector = get_or_restore_detector()
 
-    return render_template('index.html',cloud_url = detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list = detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -238,11 +224,11 @@ def upload_file():
     files = request.files.getlist('files')
     for file in files:
         if file.filename == '':
-            return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+            return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
         if file:
             file_content = file.read().decode('utf-8')
             detector.file_data[file.filename] = file_content
-    return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/visualize', methods=['POST'])
 def show_png():
@@ -253,21 +239,21 @@ def show_png():
 
     else:
         detector.plot_url = None
-        detector.cloud_url = None
+        detector.cloud_url_list = None
 
     # TODO:
     # detector.visualize_perplexities()
 
-    return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
 
 @app.route('/delete/<filename>', methods=['DELETE'])
 def delete_file(filename):
     detector = get_or_restore_detector()
     if filename in detector.file_data.keys():
         del detector.file_data[filename]
-        return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
+        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
     else:
-        return render_template('index.html',cloud_url=detector.cloud_url, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
+        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
 
 @app.route('/download', methods=['GET'])
 def download_file():
