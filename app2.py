@@ -24,6 +24,7 @@ from flask_session import Session
 from datetime import timedelta
 import numpy as np
 from PIL import Image
+from collections import Counter
 
 # TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
 # TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie)
@@ -84,7 +85,7 @@ class PlagiarismDetector:
         # TODO: dla porównania modeli językowych MLE i WBI
         # self.mle_models = None
         # self.wbi_models = None
-
+        self.word_freq_plot_url = None
         self.plot_url = None
         self.cloud_url_list = None
         self.n = 4
@@ -112,6 +113,35 @@ class PlagiarismDetector:
         # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
     
+    def visualize_word_frequencies(self):
+        fig, ax = plt.subplots()
+        colors = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124', '#45B8AC']
+        markers = ['+','x','d','*','1','o','.','s','d',',']
+
+        for idx, (filename, content) in enumerate(self.file_data.items()):
+            content = re.sub(r'[^\w\s]', '', content)
+            words = re.split(r'\s+', content)
+            word_counts = Counter(words)
+            most_common_words = word_counts.most_common(10)
+            words, counts = zip(*most_common_words)
+            ax.scatter(words, counts, color=colors[idx % len(colors)],marker=markers[idx%len(markers)], label=filename)
+
+        ax.set_xlabel('Words',color='Grey')
+        ax.set_ylabel('Frequency',color='Grey')
+        ax.legend()
+        ax.grid()
+                
+        for label in ax.get_xticklabels():
+            label.set_ha('right')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        self.word_freq_plot_url = base64.b64encode(buf.getvalue()).decode('utf-8')
+        plt.close(fig)
+
     def visualize_similarities(self):
         _, ax = plt.subplots()
 
@@ -145,8 +175,9 @@ class PlagiarismDetector:
         
         generator = WordCloudGenerator(self.file_data)
         self.cloud_url_list = generator.generate_word_clouds()
+        self.visualize_word_frequencies()
         plt.close()
-        
+
     def set_state(self, state):
         self.file_data = state['file_data']
 
@@ -213,7 +244,8 @@ Session(app)
 def show_site():
     detector = get_or_restore_detector()
 
-    return render_template('index.html',cloud_url_list = detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list = detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -224,11 +256,13 @@ def upload_file():
     files = request.files.getlist('files')
     for file in files:
         if file.filename == '':
-            return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+            return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
         if file:
             file_content = file.read().decode('utf-8')
             detector.file_data[file.filename] = file_content
-    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
 
 @app.route('/visualize', methods=['POST'])
 def show_png():
@@ -238,22 +272,26 @@ def show_png():
         detector.visualize_similarities()
 
     else:
+        detector.word_freq_plot_url = None
         detector.plot_url = None
         detector.cloud_url_list = None
 
     # TODO:
     # detector.visualize_perplexities()
 
-    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys()))
+    return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
 
 @app.route('/delete/<filename>', methods=['DELETE'])
 def delete_file(filename):
     detector = get_or_restore_detector()
     if filename in detector.file_data.keys():
         del detector.file_data[filename]
-        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 204
+        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys())), 204
     else:
-        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, list_files=list(detector.file_data.keys())), 404
+        return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys())), 404
 
 @app.route('/download', methods=['GET'])
 def download_file():

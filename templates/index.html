@@ -153,6 +153,10 @@
   {% if cloud_url_list %}
   <div class="tab-button {% if not plot_url %}inactive{% endif %}" data-tab="word_clouds">Word Clouds</div>
   {% endif %}
+  {% if word_freq_plot_url %}
+  <div class="tab-button" data-tab="word-frequencies">Word Frequencies</div>
+
+  {% endif %}
 </div>
 {% if plot_url %}
 <div id="similarity" class="tab active">
@@ -165,8 +169,6 @@
 {% if cloud_url_list %}
 <div id="word_clouds" class="tab">
   {% for cloud_url in cloud_url_list %}
-
-
       <div class="frame">
         <img src="data:image/png;base64,{{ cloud_url }}">
       </div>
@@ -175,11 +177,20 @@
 </div>
 {% endif %}
 
+{% if word_freq_plot_url %}
+<div id="word-frequencies" class="tab">
+  <div class="frame">
+    <img src="data:image/png;base64,{{ word_freq_plot_url }}">
+  </div>
+</div>
+{% endif %}
+
+
 {% if plot_url %}
 <a href="/download">Download Report</a>
 {% endif %}
   </div>
-
+</div>
 <footer>
   <p>Developed by <a href=https://github.com/Szackie/plagiarism_detector>szackie</a></p>
 </footer>
