@@ -6,3 +6,4 @@ nltk
 openpyxl
 xlsxwriter
 flask_session
+wordcloud
