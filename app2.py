@@ -262,6 +262,26 @@ def upload_file():
     return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
                            word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
 
+
+@app.route('/upload_text', methods=['POST'])
+def upload_text():
+    detector = get_or_restore_detector()
+    text_content = request.form['text_content']
+    
+    if text_content:
+        filename_base = text_content[:10].strip()
+        filename = filename_base
+        counter = 1
+        while filename in detector.file_data:
+            filename = f"{filename_base}_{counter}"
+            counter += 1
+        detector.file_data[filename] = text_content
+    
+    return render_template('index.html', cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
+                           word_freq_plot_url=detector.word_freq_plot_url, list_files=list(detector.file_data.keys()))
+
+
+
 @app.route('/visualize', methods=['POST'])
 def show_png():
     detector = get_or_restore_detector()

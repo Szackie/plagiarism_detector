@@ -66,6 +66,25 @@
       background-color: #2980b9;
     }
 
+    .text-upload-form {
+    display: flex;
+    align-items: center;
+  }
+
+  .text-upload-form textarea {
+    margin-right: 10px;
+  }
+
+  #addTextButton {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+
+  #addTextButton:hover {
+    background-color: #e0e0e0;
+  }
     img {
       display: block;
       max-width: 100%;
@@ -88,13 +107,13 @@
 
 
     .show-result-form {
-  margin-bottom: 5px; /* Dodanie marginesu dolnego */
+  margin-bottom: 5px; 
 }
 
 .tab-buttons {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 0; /* Usunięcie marginesu dolnego */
+  margin-bottom: 0; 
 }
 
 .tab-button {
@@ -106,7 +125,7 @@
 }
 
 .tab-button.active {
-  background-color: #e0f7fa; /* Bardzo jasno niebieskie tło */
+  background-color: #e0f7fa; 
   border: 3px solid #e0f7fa;
   z-index: 1;
 }
@@ -118,9 +137,9 @@
 }
 
 .frame {
-  border: 4px solid #e0f7fa; /* Bardzo jasno niebieska ramka */
+  border: 4px solid #e0f7fa; 
   padding: 10px;
-  margin-top: 0; /* Zmniejszenie marginesu górnego */
+  margin-top: 0; 
   position: relative;
   z-index: 1;
 }
@@ -140,8 +159,12 @@
   <p>Select the text files (*.txt) you want to compare and click 'Show Result' to see the similarity matrix, word clouds and more.</p>
   
   <input type="file" id="files" name="files" multiple>
-  
+  <form action="/upload_text" method="post">
+    <textarea name="text_content" rows="2" cols="50" placeholder="... or paste your text here and click Add text..."></textarea>
+    <button type="button" id="addTextButton">Add text</button>
+</form>
   <ul id="fileList"></ul>
+
   
 <form action="/visualize" method="post" class="show-result-form">
   <input type="submit" value="Show Result">
@@ -195,7 +218,9 @@
   <p>Developed by <a href=https://github.com/Szackie/plagiarism_detector>szackie</a></p>
 </footer>
   <script>
-    
+      document.getElementById('addTextButton').addEventListener('click', function() {
+    this.closest('form').submit();
+  });
 
     var list_files = {{ list_files|tojson|safe }};
   
