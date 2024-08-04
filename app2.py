@@ -27,7 +27,7 @@ from PIL import Image
 from collections import Counter
 
 # TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
-# TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie)
+# TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie) - [edit] Rozwiązanie nieczytelne. lepsze osobne obrazki dla każdego z tektstów
 # TODO: Wykresy zależności miary podobieństwa od długości tekstu
 # TODO: wydajność - porównanie czasu obliczeń dla różnych modeli językowych
 # TODO: wykresy stosunku liczby słów w tekście do całego tekstu dla każdego słowa i wszystkich tekstów na jednym wykresie (histogram) + możliwość 
@@ -36,13 +36,43 @@ from collections import Counter
 # TODO: dodanie okienek do wklejania porównywanych tekstów
 
 
-class WordCloudGenerator:
-    def __init__(self, file_data=None):
+class PlagiarismDetector:
+    def __init__(self):
+        self.file_data = {}
+        self.similarities = None
 
-        if file_data is None:
-            file_data = {}
-        self.file_data = file_data
+        # TODO: dla porównania modeli językowych MLE i WBI
+        # self.mle_models = None
+        # self.wbi_models = None
+        self.word_freq_plot_url = None
+        self.plot_url = None
+        self.cloud_url_list = None
+        self.n = 4
+        self.MOST_COMMON=10
 
+    def preprocess_and_tokenize(self,text):
+        text = text.lower()
+        text = re.sub(r"\[.*\]|\{.*\}", "", text)
+        text = re.sub(r'[^\w\s]', "", text)
+        return list(pad_sequence(word_tokenize(text), self.n, pad_left=True, left_pad_symbol="<s>"))
+
+    def build_ngram_model(self,data, model_type):
+        model = model_type(self.n)
+        model.fit([list(everygrams(data, max_len=self.n))], vocabulary_text=data)
+        return model
+
+    def calculate_similarity(self,text1, text2):
+        vectorizer = TfidfVectorizer().fit_transform([text1, text2])
+        return cosine_similarity(vectorizer)[0,1]
+
+    def compare_files(self,file_data):
+        self.tokenized_texts = [self.preprocess_and_tokenize(text) for text in file_data.values()]
+        
+        # TODO:dla porównania modeli językowych MLE i WBI
+        # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
+        # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
+        self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
+    
     def generate_word_clouds(self):
         colors = ['#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9', '#92A8D1', '#955251', '#B565A7', '#009B77', '#DD4124', '#45B8AC']
         
@@ -75,43 +105,7 @@ class WordCloudGenerator:
             cloud_url_list.append(cloud_url)
             plt.close()
 
-        return cloud_url_list
-
-class PlagiarismDetector:
-    def __init__(self):
-        self.file_data = {}
-        self.similarities = None
-
-        # TODO: dla porównania modeli językowych MLE i WBI
-        # self.mle_models = None
-        # self.wbi_models = None
-        self.word_freq_plot_url = None
-        self.plot_url = None
-        self.cloud_url_list = None
-        self.n = 4
-
-    def preprocess_and_tokenize(self,text):
-        text = text.lower()
-        text = re.sub(r"\[.*\]|\{.*\}", "", text)
-        text = re.sub(r'[^\w\s]', "", text)
-        return list(pad_sequence(word_tokenize(text), self.n, pad_left=True, left_pad_symbol="<s>"))
-
-    def build_ngram_model(self,data, model_type):
-        model = model_type(self.n)
-        model.fit([list(everygrams(data, max_len=self.n))], vocabulary_text=data)
-        return model
-
-    def calculate_similarity(self,text1, text2):
-        vectorizer = TfidfVectorizer().fit_transform([text1, text2])
-        return cosine_similarity(vectorizer)[0,1]
-
-    def compare_files(self,file_data):
-        self.tokenized_texts = [self.preprocess_and_tokenize(text) for text in file_data.values()]
-        
-        # TODO:dla porównania modeli językowych MLE i WBI
-        # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
-        # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
-        self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
+        self.cloud_url_list=cloud_url_list
     
     def visualize_word_frequencies(self):
         fig, ax = plt.subplots()
@@ -122,7 +116,7 @@ class PlagiarismDetector:
             content = re.sub(r'[^\w\s]', '', content)
             words = re.split(r'\s+', content)
             word_counts = Counter(words)
-            most_common_words = word_counts.most_common(10)
+            most_common_words = word_counts.most_common(self.MOST_COMMON)
             words, counts = zip(*most_common_words)
             ax.scatter(words, counts, color=colors[idx % len(colors)],marker=markers[idx%len(markers)], label=filename)
 
@@ -130,6 +124,7 @@ class PlagiarismDetector:
         ax.set_ylabel('Frequency',color='Grey')
         ax.legend()
         ax.grid()
+        ax.set_title(f'Frequency of {self.MOST_COMMON} most common words')
                 
         for label in ax.get_xticklabels():
             label.set_ha('right')
@@ -142,7 +137,7 @@ class PlagiarismDetector:
         self.word_freq_plot_url = base64.b64encode(buf.getvalue()).decode('utf-8')
         plt.close(fig)
 
-    def visualize_similarities(self):
+    def visualize_similarity(self):
         _, ax = plt.subplots()
 
         im = ax.imshow(self.similarities, cmap='Reds', interpolation='nearest', vmin=0, vmax=1)
@@ -172,11 +167,14 @@ class PlagiarismDetector:
 
         self.plot_url = base64.b64encode(img.getvalue()).decode()
         plt.clf()
-        
-        generator = WordCloudGenerator(self.file_data)
-        self.cloud_url_list = generator.generate_word_clouds()
-        self.visualize_word_frequencies()
         plt.close()
+
+    def visualize(self):
+
+        self.visualize_similarity()
+        self.generate_word_clouds()
+        self.visualize_word_frequencies()
+        
 
     def set_state(self, state):
         self.file_data = state['file_data']
@@ -269,7 +267,7 @@ def show_png():
     detector = get_or_restore_detector()
     if detector.file_data:
         detector.compare_files(detector.file_data)
-        detector.visualize_similarities()
+        detector.visualize()
 
     else:
         detector.word_freq_plot_url = None
