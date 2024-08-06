@@ -12,3 +12,4 @@ openpyxl
 xlsxwriter
 flask_session
 wordcloud
+markupsafe==2.0.1
