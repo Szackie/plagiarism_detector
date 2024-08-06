@@ -6,8 +6,6 @@ import base64
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-
-
 matplotlib.use('Agg') 
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -25,6 +23,7 @@ from datetime import timedelta
 import numpy as np
 from PIL import Image
 from collections import Counter
+
 
 # TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
 # TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie) - [edit] Rozwiązanie nieczytelne. lepsze osobne obrazki dla każdego z tektstów
