@@ -7,7 +7,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg') 
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import xlsxwriter
@@ -24,25 +23,10 @@ import numpy as np
 from PIL import Image
 from collections import Counter
 
-
-# TODO: dodanie możliwości wyboru modeli językowych MLE i WBI do porównania + wizualizacja perplexity
-# TODO: chmurka tagów z najczęstszymi słowami w tekstach (niech dla każdego z plików będzie inny kolor, słowa półprzeźroczyste i niech zachodzą na siebie) - [edit] Rozwiązanie nieczytelne. lepsze osobne obrazki dla każdego z tektstów
-# TODO: Wykresy zależności miary podobieństwa od długości tekstu
-# TODO: wydajność - porównanie czasu obliczeń dla różnych modeli językowych
-# TODO: wykresy stosunku liczby słów w tekście do całego tekstu dla każdego słowa i wszystkich tekstów na jednym wykresie (histogram) + możliwość 
-#       wyboru tekstu do porównania (dropdown lub radio buttons)  
-# TODO: [zrobione] dodawanie i usuwanie plików do porównania dynamicznie
-# TODO: dodanie okienek do wklejania porównywanych tekstów
-
-
 class PlagiarismDetector:
     def __init__(self):
         self.file_data = {}
         self.similarities = None
-
-        # TODO: dla porównania modeli językowych MLE i WBI
-        # self.mle_models = None
-        # self.wbi_models = None
         self.word_freq_plot_url = None
         self.plot_url = None
         self.cloud_url_list = None
@@ -66,10 +50,6 @@ class PlagiarismDetector:
 
     def compare_files(self,file_data):
         self.tokenized_texts = [self.preprocess_and_tokenize(text) for text in file_data.values()]
-        
-        # TODO:dla porównania modeli językowych MLE i WBI
-        # self.mle_models = [self.build_ngram_model(text, MLE) for text in self.tokenized_texts]
-        # self.wbi_models = [self.build_ngram_model(text, WittenBellInterpolated) for text in self.tokenized_texts]
         self.similarities = [[self.calculate_similarity(text1, text2) for text2 in file_data.values()] for text1 in file_data.values()]
     
     def generate_word_clouds(self):
@@ -169,12 +149,10 @@ class PlagiarismDetector:
         plt.close()
 
     def visualize(self):
-
         self.visualize_similarity()
         self.generate_word_clouds()
         self.visualize_word_frequencies()
         
-
     def set_state(self, state):
         self.file_data = state['file_data']
 
@@ -182,42 +160,6 @@ class PlagiarismDetector:
         return {
             'file_data': self.file_data,
         }
-
-'''
-    #TODO: Metoda do wizualizacji perplexity dla modeli MLE i WBI dla każdego tekstu
-    
-    # def visualize_perplexities(self):
-    #     mle_perplexities = [[model.perplexity(text) for text in self.tokenized_texts] for model in self.mle_models]
-    #     wbi_perplexities = [[model.perplexity(text) for text in self.tokenized_texts] for model in self.wbi_models]
-
-    #     fig, axs = plt.subplots(2)
-
-    #     axs[0].imshow(mle_perplexities, cmap='Reds', interpolation='nearest')
-    #     axs[0].set_title('MLE Perplexities')
-    #     axs[0].set_xticks(range(len(list(self.file_data.keys()))))
-    #     axs[0].set_yticks(range(len(list(self.file_data.keys()))))
-    #     axs[0].set_xticklabels(list(self.file_data.keys()), rotation=90)
-    #     axs[0].set_yticklabels(list(self.file_data.keys()))
-
-    #     axs[1].imshow(wbi_perplexities, cmap='Reds', interpolation='nearest')
-    #     axs[1].set_title('WBI Perplexities')
-    #     axs[1].set_xticks(range(len(list(self.file_data.keys()))))
-    #     axs[1].set_yticks(range(len(list(self.file_data.keys()))))
-    #     axs[1].set_xticklabels(list(self.file_data.keys()), rotation=90)
-    #     axs[1].set_yticklabels(list(self.file_data.keys()))
-
-    #     plt.tight_layout()
-    #     plt.colorbar()
-
-    #     # Save the plot to a BytesIO object
-    #     img = io.BytesIO()
-    #     plt.savefig(img, format='png')
-    #     img.seek(0)
-
-    #     # Encode the BytesIO object to base64 and decode it to utf-8 to embed it in HTML
-    #     self.plot_url = base64.b64encode(img.getvalue()).decode()
-    #     plt.clf()
-'''
 
 def get_or_restore_detector():
     session.permanent = True
@@ -229,7 +171,6 @@ def get_or_restore_detector():
     else:
         detector.set_state(detector_data)
     return detector
-
 
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -261,7 +202,6 @@ def upload_file():
     return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
                            word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
 
-
 @app.route('/upload_text', methods=['POST'])
 def upload_text():
     detector = get_or_restore_detector()
@@ -279,8 +219,6 @@ def upload_text():
     return render_template('index.html', cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
                            word_freq_plot_url=detector.word_freq_plot_url, list_files=list(detector.file_data.keys()))
 
-
-
 @app.route('/visualize', methods=['POST'])
 def show_png():
     detector = get_or_restore_detector()
@@ -292,9 +230,6 @@ def show_png():
         detector.word_freq_plot_url = None
         detector.plot_url = None
         detector.cloud_url_list = None
-
-    # TODO:
-    # detector.visualize_perplexities()
 
     return render_template('index.html',cloud_url_list=detector.cloud_url_list, plot_url=detector.plot_url, 
                            word_freq_plot_url=detector.word_freq_plot_url,  list_files=list(detector.file_data.keys()))
@@ -318,8 +253,7 @@ def download_file():
 
     output = io.BytesIO()
     writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    
-#get excel report
+
     df = pd.DataFrame(detector.similarities, columns=list(detector.file_data.keys()), index=list(detector.file_data.keys()))
     df.to_excel(writer, sheet_name='Plagiarism Report')
 
@@ -329,7 +263,6 @@ def download_file():
     response.headers['Content-Disposition'] = 'attachment; filename=plagiarism_report.xlsx'
     response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
