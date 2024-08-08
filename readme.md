@@ -2,7 +2,7 @@
 
 This is a Python application that uses Flask, pandas, matplotlib, sklearn, and nltk to detect plagiarism in text files. The application allows users to upload multiple text files and generates a report indicating the similarity between each pair of files.
 
-![plagiarism_detect_screenshot](https://github.com/Szackie/plagiarism_detector/assets/104226817/6a36b9ca-3a76-4014-83b7-d03145bf4df8)
+![plagiarism_detect_screenshot](https://github.com/user-attachments/assets/d2118428-b628-4a5c-ace2-5baac6e98f19)
 
 The application is hosted at [https://plagiarism-detector-dst6.onrender.com/](https://plagiarism-detector-dst6.onrender.com/)
 
