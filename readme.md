@@ -25,7 +25,7 @@ The application is containerized using Docker and hosted on Render. You can acce
 
 - On the home page, click "Choose Files" to select the text files you want to compare.
 - Click "Upload" to upload the files and start the comparison.
-- Once the comparison is complete, a heatmap showing the similarity between each pair of files will be displayed.
+- Once the comparison is complete, a heatmap displaying the similarity between each pair of files across the other tabs will be shown.
 - Click "Download Report" to download an Excel file containing the similarity report.
 
   ![plagiarism_report_screenshot](https://github.com/Szackie/plagiarism_detector/assets/104226817/0af2845b-f092-4ce4-92f4-4d7d83d41867)
@@ -36,5 +36,3 @@ The application is containerized using Docker and hosted on Render. You can acce
 - Add charts showing the dependency of the similarity measure on the length of the text.
 - Compare computation time for different language models.
 - Add charts showing the ratio of the number of words in the text to the entire text for each word and all texts on one chart (histogram) with the ability to choose the text for comparison (dropdown or radio buttons).
- :white_check_mark: <del> Add the ability to dynamically add and remove files for comparison. </del>
-
