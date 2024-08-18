@@ -6,7 +6,14 @@ COPY . /app
 
 RUN python -m venv venv
 RUN . venv/bin/activate && pip install --no-cache-dir -r requirements.txt
-RUN . venv/bin/activate && python -m nltk.downloader wordnet
+
+# Create a directory for NLTK data and set NLTK_DATA environment variable
+RUN mkdir -p /app/nltk_data
+ENV NLTK_DATA=/app/nltk_data
+
+# Download wordnet to the specified directory
+RUN . venv/bin/activate && python -m nltk.downloader -d /app/nltk_data wordnet
+
 EXPOSE 8000
 
 ENV PD_env World
