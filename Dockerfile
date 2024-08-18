@@ -12,7 +12,7 @@ RUN mkdir -p /app/nltk_data
 ENV NLTK_DATA=/app/nltk_data
 
 # Download wordnet and punkt to the specified directory
-RUN venv/bin/python -m nltk.downloader -d /app/nltk_data wordnet punkt
+RUN venv/bin/python -m nltk.downloader -d /app/nltk_data wordnet punkt_tab
 
 EXPOSE 8000
 
