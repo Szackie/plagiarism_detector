@@ -6,7 +6,7 @@ COPY . /app
 
 RUN python -m venv venv
 RUN . venv/bin/activate && pip install --no-cache-dir -r requirements.txt
-
+RUN . venv/bin/activate && python -m nltk.downloader wordnet
 EXPOSE 8000
 
 ENV PD_env World
