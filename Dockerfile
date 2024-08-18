@@ -12,7 +12,7 @@ RUN mkdir -p /app/nltk_data
 ENV NLTK_DATA=/app/nltk_data
 
 # Download wordnet to the specified directory
-RUN . venv/bin/activate && python -m nltk.downloader -d /app/nltk_data wordnet
+RUN . venv/bin/activate && python venv/lib/python3.9/site-packages/nltk/downloader.py -d /app/nltk_data wordnet
 
 EXPOSE 8000
 

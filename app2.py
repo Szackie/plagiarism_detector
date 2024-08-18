@@ -10,11 +10,10 @@ matplotlib.use('Agg')
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import xlsxwriter
-# from nltk.lm import MLE, WittenBellInterpolated
+from nltk.lm import MLE, WittenBellInterpolated
 from nltk.util import ngrams, pad_sequence, everygrams
 from nltk.tokenize import word_tokenize
 import nltk
-nltk.download('punkt')
 import re
 import os
 from flask_session import Session
