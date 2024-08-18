@@ -11,8 +11,8 @@ RUN venv/bin/pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /app/nltk_data
 ENV NLTK_DATA=/app/nltk_data
 
-# Download wordnet to the specified directory
-RUN venv/bin/python -m nltk.downloader -d /app/nltk_data wordnet
+# Download wordnet and punkt to the specified directory
+RUN venv/bin/python -m nltk.downloader -d /app/nltk_data wordnet punkt
 
 EXPOSE 8000
 
