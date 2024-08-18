@@ -4,11 +4,13 @@ WORKDIR /app
 
 COPY . /app
 
-RUN python -m venv venv
-RUN venv/pip install --no-cache-dir -r requirements.txt
+RUN python -m venv /app/venv
+
+RUN /app/venv/bin/pip install --upgrade pip
+RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
 ENV PD_env World
 
-CMD ["venv/gunicorn", "--bind", "0.0.0.0:8000", "wsgi:app"]
+CMD ["/app/venv/bin/python", "--bind", "0.0.0.0:8000", "wsgi:app"]
