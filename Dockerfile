@@ -4,13 +4,13 @@ WORKDIR /app
 
 COPY . /app
 
-RUN python -m venv /app/venv
+RUN python -m venv venv
+RUN venv/bin/pip install --no-cache-dir -r requirements.txt
 
-RUN /app/venv/bin/pip install --upgrade pip
-RUN /app/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN venv/bin/python -m nltk.downloader -d /app/venv/nltk_data wordnet punkt_tab
 
 EXPOSE 8000
 
 ENV PD_env World
 
-CMD ["/app/venv/bin/python", "--bind", "0.0.0.0:8000", "wsgi:app"]
+CMD ["venv/bin/gunicorn", "--bind", "0.0.0.0:8000", "wsgi:app"]
